@@ -7,6 +7,8 @@ defmodule Woody.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
+      description: "Logging utilities",
+      package: package(),
       deps: deps()
     ]
   end
@@ -23,7 +25,16 @@ defmodule Woody.Mixfile do
   defp deps do
     [
       {:poison, "~> 3.1"},
-      {:plug, "~> 1.0"}
+      {:plug, "~> 1.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
+  end
+
+  defp package do
+    [ name: :woody,
+      files: ["lib", "mix.exs"],
+      maintainers: ["Erez Rabih"],
+      licenses: ["MIT"],
+      links: %{"Github" => "https://github.com/nanit/woody.ex"}]
   end
 end
