@@ -23,6 +23,6 @@ defmodule Woody.Plugs.StatsD do
     metric_name = route_to_metric_name(conn)
     StatsD.increment("web.#{metric_name}.requests")
     StatsD.increment("web.#{metric_name}.response_codes.#{conn.status}")
-    StatsD.timer("web.#{metric_name}", time_took)
+    StatsD.timer(time_took, "web.#{metric_name}")
   end
 end
