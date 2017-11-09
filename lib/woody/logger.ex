@@ -9,7 +9,7 @@ defmodule Woody.Logger do
     end
   end
 
-  @app Application.get_env(:tip_me, :app_for_log)
+  @app Application.get_env(:woody, :app_name)
 
   def prefix(k, v) when is_nil(v), do: k
   def prefix(k, v) when is_boolean(v), do: "#{k}_bool"

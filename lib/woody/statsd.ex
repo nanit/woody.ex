@@ -43,7 +43,7 @@ defmodule Woody.StatsD do
   def start_link(options \\ []) do
     state = %{port:      Keyword.get(options, :port,      (System.get_env("STATSD_PORT") || @default_port)) |> parse_port,
               host:      Keyword.get(options, :host,      (System.get_env("STATSD_HOST") || @default_host)) |> parse_host,
-              namespace: Keyword.get(options, :namespace, (System.get_env("STATSD_NS") || @default_namespace)),
+              namespace: Keyword.get(options, :namespace, (System.get_env("STATSD_NS") || Application.get_env(:woody, :app_name) || @default_namespace)),
               sink:      Keyword.get(options, :sink,      @default_sink),
               tags:      Keyword.get(options, :tags,      @default_tags),
               socket:    nil}
