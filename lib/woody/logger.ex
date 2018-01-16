@@ -11,22 +11,22 @@ defmodule Woody.Logger do
 
   @app Application.get_env(:woody, :app_name)
 
-  def prefix(k, v) when is_nil(v), do: k
-  def prefix(k, v) when is_boolean(v), do: "#{k}_bool"
-  def prefix(k, v) when is_atom(v), do: "#{k}_str"
-  def prefix(k, v) when is_bitstring(v), do: "#{k}_str"
-  def prefix(k, v) when is_float(v), do: "#{k}_flt"
-  def prefix(k, v) when is_integer(v), do: "#{k}_int"
-  def prefix(k, v) when is_tuple(v), do: "#{k}_str"
-  def prefix(k, v) when is_map(v), do: k
-  def prefix(k, v) when is_list(v) do
+  def suffix(k, v) when is_nil(v), do: k
+  def suffix(k, v) when is_boolean(v), do: "#{k}_bool"
+  def suffix(k, v) when is_atom(v), do: "#{k}_str"
+  def suffix(k, v) when is_bitstring(v), do: "#{k}_str"
+  def suffix(k, v) when is_float(v), do: "#{k}_flt"
+  def suffix(k, v) when is_integer(v), do: "#{k}_int"
+  def suffix(k, v) when is_tuple(v), do: "#{k}_str"
+  def suffix(k, v) when is_map(v), do: k
+  def suffix(k, v) when is_list(v) do
     if Keyword.keyword? v do
       k
     else
       "#{k}_str"
     end
   end
-  def prefix(k, _v), do: "#{k}_str"
+  def suffix(k, _v), do: "#{k}_str"
 
   def process(v) when is_nil(v), do: v
   def process(v) when is_boolean(v), do: v
@@ -35,6 +35,17 @@ defmodule Woody.Logger do
   def process(v) when is_float(v), do: v
   def process(v) when is_integer(v), do: v
   def process(v) when is_tuple(v), do: inspect(v)
+  def process(%{__struct__: Date} = v) when is_map(v) do 
+    {Date.to_iso8601(v), "date"}
+  end
+  def process(%{__struct__: DateTime} = v) when is_map(v) do 
+    {DateTime.to_iso8601(v), "datetime"}
+  end
+
+  def process(%{__struct__: type} = v) when is_map(v) do 
+    IO.puts "unknown type #{inspect type}"
+    inspect(v)
+  end
   def process(v) when is_map(v) do 
     case nested_map_size(v) do
       x when x > 20 ->
@@ -55,32 +66,34 @@ defmodule Woody.Logger do
   def process(v), do: inspect(v)
 
   def add_kv_to_log({k, v}, acc) do 
-    processed = process(v)
-    Map.put(acc, prefix(k, processed), processed)
+    case process(v) do
+      {processed, suf} -> Map.put(acc, "#{k}_#{suf}", processed)
+      processed -> Map.put(acc, suffix(k, processed), processed)
+    end
   end
 
   def add_to_log(member, acc) when is_bitstring(member) do
     Map.put(acc, :message, member)
   end
 
+  def add_to_log(%{__struct__: _type} = member, acc) when is_map(member) do
+    add_to_log(inspect(member), acc)
+  end
+
   def add_to_log(member, acc) when is_map(member) do
-    try do
-      Enum.reduce(member, acc, &add_kv_to_log/2)
-    rescue
-      _error -> Map.merge(acc, %{payload: inspect(member)})
-    end
+    Enum.reduce(member, acc, &add_kv_to_log/2)
   end
 
   def add_to_log(member, acc) when is_list(member) do
     if Keyword.keyword? member do
       add_to_log(Enum.into(member, %{}), acc)
     else
-      Map.merge(acc, %{payload: inspect(member)})
+      Map.merge(acc, %{payload_str: inspect(member)})
     end
   end
 
   def add_to_log(member, acc) do
-    Map.merge(acc, %{payload: inspect(member)})
+    Map.merge(acc, %{payload_str: inspect(member)})
   end
   
   defp additional_fields(lvl, module, file, function, line) do
@@ -102,8 +115,17 @@ defmodule Woody.Logger do
   def log(lvl, list, caller) do
     %{module: m, file: file, function: f, line: l} = caller
     quote do
-      msg = unquote(list) |> Enum.reduce(%{}, &Woody.Logger.add_to_log/2) |> Woody.Logger.wrap_with_metadata(unquote(lvl), unquote(m), unquote(file), unquote(f), unquote(l)) |> Poison.encode!
-      Logger.log(unquote(lvl), msg)
+      unquoted = unquote(list)
+      msg_map = try do
+        unquoted |> Enum.reduce(%{}, &Woody.Logger.add_to_log/2) 
+      rescue e ->
+        %{message: inspect(unquoted)}
+      end
+      map_with_metadata = msg_map |> Woody.Logger.wrap_with_metadata(unquote(lvl), unquote(m), unquote(file), unquote(f), unquote(l))
+      case Poison.encode(map_with_metadata) do
+        {:ok, json} -> Logger.log(unquote(lvl), json)
+        {:error, err} -> Logger.log(unquote(lvl), inspect(map_with_metadata))
+      end
     end
   end
 
