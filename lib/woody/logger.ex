@@ -10,23 +10,32 @@ defmodule Woody.Logger do
   end
 
   @app Application.get_env(:woody, :app_name)
-
-  def suffix(k, v) when is_nil(v), do: k
-  def suffix(k, v) when is_boolean(v), do: "#{k}_bool"
-  def suffix(k, v) when is_atom(v), do: "#{k}_str"
-  def suffix(k, v) when is_bitstring(v), do: "#{k}_str"
-  def suffix(k, v) when is_float(v), do: "#{k}_flt"
-  def suffix(k, v) when is_integer(v), do: "#{k}_int"
-  def suffix(k, v) when is_tuple(v), do: "#{k}_str"
-  def suffix(k, v) when is_map(v), do: k
-  def suffix(k, v) when is_list(v) do
-    if Keyword.keyword? v do
-      k
-    else
-      "#{k}_str"
+  def stringify(k) do
+    case String.Chars.impl_for k do
+      nil -> inspect k
+      _other -> k
     end
   end
-  def suffix(k, _v), do: "#{k}_str"
+
+  def suffix(k, nil), do: stringify k
+  def suffix(k, suf), do: "#{stringify k}_#{suf}"
+
+  def get_suffix(v) when is_nil(v), do: nil
+  def get_suffix(v) when is_boolean(v), do: "bool"
+  def get_suffix(v) when is_atom(v), do: "str"
+  def get_suffix(v) when is_bitstring(v), do: "str"
+  def get_suffix(v) when is_float(v), do: "flt"
+  def get_suffix(v) when is_integer(v), do: "int"
+  def get_suffix(v) when is_tuple(v), do: "str"
+  def get_suffix(v) when is_map(v), do: nil
+  def get_suffix(v) when is_list(v) do
+    if Keyword.keyword? v do
+      nil
+    else
+      "str"
+    end
+  end
+  def get_suffix(_v), do: "str"
 
   def process(v) when is_nil(v), do: v
   def process(v) when is_boolean(v), do: v
@@ -43,7 +52,6 @@ defmodule Woody.Logger do
   end
 
   def process(%{__struct__: type} = v) when is_map(v) do 
-    IO.puts "unknown type #{inspect type}"
     inspect(v)
   end
   def process(v) when is_map(v) do 
@@ -67,13 +75,13 @@ defmodule Woody.Logger do
 
   def add_kv_to_log({k, v}, acc) do 
     case process(v) do
-      {processed, suf} -> Map.put(acc, "#{k}_#{suf}", processed)
-      processed -> Map.put(acc, suffix(k, processed), processed)
+      {processed, suf} -> Map.put(acc, suffix(k, suf), processed)
+      processed -> Map.put(acc, suffix(k, get_suffix(processed)), processed)
     end
   end
 
   def add_to_log(member, acc) when is_bitstring(member) do
-    Map.put(acc, :message, member)
+    Map.update(acc, :message, member, fn old -> "#{old} #{member}" end)
   end
 
   def add_to_log(%{__struct__: _type} = member, acc) when is_map(member) do
@@ -112,12 +120,14 @@ defmodule Woody.Logger do
     Map.merge(additional_fields(lvl, module, file, function, line), m)
   end
 
+  def transform(list), do: Enum.reduce(list, %{}, &Woody.Logger.add_to_log/2) 
+
   def log(lvl, list, caller) do
     %{module: m, file: file, function: f, line: l} = caller
     quote do
       unquoted = unquote(list)
       msg_map = try do
-        unquoted |> Enum.reduce(%{}, &Woody.Logger.add_to_log/2) 
+        Woody.Logger.transform(unquoted)
       rescue e ->
         %{message: inspect(unquoted)}
       end
