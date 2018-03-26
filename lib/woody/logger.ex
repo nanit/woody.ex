@@ -131,11 +131,8 @@ defmodule Woody.Logger do
       msg_map = try do
         Woody.Logger.transform(unquoted)
       rescue e ->
-        if System.get_env("WOODY_DEBUG") == "true" do 
-          IO.puts "woody error #{inspect(e)}"
-          IO.puts "trying to log #{inspect(unquoted)}"
-          IO.puts Exception.format(:error, e)
-        end
+        IO.puts "woody error #{inspect(e)} trying to log #{inspect(unquoted)}"
+        IO.puts "woody error #{Exception.format(:error, e)}"
         %{message: inspect(unquoted)}
       end
       map_with_metadata = msg_map |> Woody.Logger.wrap_with_metadata(unquote(lvl), unquote(m), unquote(file), unquote(f), unquote(l))
@@ -188,7 +185,10 @@ defmodule Woody.Logger do
 
   defp nested_map_size(m) when is_map(m) do
     current = m |> Map.keys |> Enum.count
-    Enum.reduce(m, current, fn {_k, v}, acc -> acc + nested_map_size(v) end )
+    case Enumerable.impl_for m do
+      nil -> current
+      _other -> Enum.reduce(m, current, fn {_k, v}, acc -> acc + nested_map_size(v) end )
+    end
   end
   defp nested_map_size(_), do: 0
 
