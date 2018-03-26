@@ -120,7 +120,9 @@ defmodule Woody.Logger do
     Map.merge(additional_fields(lvl, module, file, function, line), m)
   end
 
-  def transform(list), do: Enum.reduce(list, %{}, &Woody.Logger.add_to_log/2) 
+  def transform(list) do 
+    Enum.reduce(list, %{}, &Woody.Logger.add_to_log/2) 
+  end
 
   def log(lvl, list, caller) do
     %{module: m, file: file, function: f, line: l} = caller
@@ -132,6 +134,7 @@ defmodule Woody.Logger do
         if System.get_env("WOODY_DEBUG") == "true" do 
           IO.puts "woody error #{inspect(e)}"
           IO.puts "trying to log #{inspect(unquoted)}"
+          IO.puts Exception.format(:error, e)
         end
         %{message: inspect(unquoted)}
       end
