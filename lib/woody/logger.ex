@@ -129,6 +129,10 @@ defmodule Woody.Logger do
       msg_map = try do
         Woody.Logger.transform(unquoted)
       rescue e ->
+        if System.get_env("WOODY_DEBUG") == "true" do 
+          IO.puts "woody error #{inspect(e)}"
+          IO.puts "trying to log #{inspect(unquoted)}"
+        end
         %{message: inspect(unquoted)}
       end
       map_with_metadata = msg_map |> Woody.Logger.wrap_with_metadata(unquote(lvl), unquote(m), unquote(file), unquote(f), unquote(l))
