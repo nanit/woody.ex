@@ -1,3 +1,6 @@
+defmodule Person do
+  defstruct [:name]
+end
 defmodule WoodyTest do
   use ExUnit.Case
   import Woody.Logger, only: [transform: 1]
@@ -17,6 +20,7 @@ defmodule WoodyTest do
     {:ok, dt, _} = DateTime.from_iso8601 "2017-11-13T10:00:00+00:00"
     assert transform(["message", %{a: dt}]) == %{:message => "message", "a_datetime" => "2017-11-13T10:00:00Z"}
     assert transform(["message", %{a: "b", b: 1, c: 1.3, d: true, e: ["1"], f: :atom, g: {"tuple"}, h: %{i: "j"}}]) == %{:message => "message", "a_str" => "b", "b_int" => 1, "c_flt" => 1.3, "d_bool" => true, "f_str" => "atom", "g_str" => "{\"tuple\"}", "e_str" => "[\"1\"]", :h => %{"i_str" => "j"}}
+    assert transform(["message", %{a: %Person{name: "john doe"}}]) == %{:message => "message", "a_str" => "%Person{name: \"john doe\"}"}
   end
 
 end
