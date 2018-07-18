@@ -16,7 +16,10 @@ defmodule Woody.Logger do
           error: 3,
           info: 1,
           info: 2,
-          info: 3
+          info: 3,
+          warn: 1,
+          warn: 2,
+          warn: 3
         ]
     end
   end
@@ -218,6 +221,18 @@ defmodule Woody.Logger do
 
   defmacro error(a1, a2, a3) do
     log(:error, [a1, a2, a3], __CALLER__)
+  end
+
+  defmacro warn(a1) do
+    log(:warn, [a1], __CALLER__)
+  end
+
+  defmacro warn(a1, a2) do
+    log(:warn, [a1, a2], __CALLER__)
+  end
+
+  defmacro warn(a1, a2, a3) do
+    log(:warn, [a1, a2, a3], __CALLER__)
   end
 
   defp nested_map_size(%_struct{}), do: 0
