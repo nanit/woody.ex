@@ -4,7 +4,7 @@ defmodule Woody.Mixfile do
   def project do
     [
       app: :woody,
-      version: "0.2",
+      version: "0.2.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
       description: "Logging utilities",
@@ -27,7 +27,7 @@ defmodule Woody.Mixfile do
       {:poison, "~> 4.0"},
       {:plug, "~> 1.0"},
       {:timex, "~> 3.1"},
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, "~> 0.19", only: :dev}
     ]
   end
 
