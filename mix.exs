@@ -27,7 +27,7 @@ defmodule Woody.Mixfile do
       {:poison, "~> 4.0"},
       {:plug, "~> 1.0"},
       {:timex, "~> 3.1"},
-      {:ex_doc, ">= 0.0.0", only: :dev}
+      {:ex_doc, "~> 0.19", only: :dev}
     ]
   end
 
